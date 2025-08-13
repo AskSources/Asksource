@@ -22,3 +22,13 @@ $ conda activate hybrid-rag
 ```bash
 export PS1="\[\033[01;32m\]\u@\h:\w\n\[\033[00m\]\$ "
 ```
+
+### Installation des requirements package 
+
+```bash
+$ pip install -r requirements.txt 
+```
+### Remplire les variable d'enverenement 
+```bash
+$ cp .env.exemple .env
+```
