@@ -17,3 +17,8 @@ $ conda create -n hybrid-rag python=3.10
 ```bash
 $ conda activate hybrid-rag
 ```
+### (Facultatif) Configurez votre interface de ligne de commande pour une meilleure lisibilité
+
+```bash
+export PS1="\[\033[01;32m\]\u@\h:\w\n\[\033[00m\]\$ "
+```
