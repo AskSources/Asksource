@@ -32,3 +32,7 @@ $ pip install -r requirements.txt
 ```bash
 $ cp .env.exemple .env
 ```
+### pour excuter le server de uvicorn
+```bash
+$ uvicorn main:app --reload --host 0.0.0.0 --port 5000
+```
