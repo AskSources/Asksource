@@ -4,3 +4,13 @@ python-multipart==0.0.20
 python-dotenv==1.1.1
 pydantic-settings==2.10.1
 aiofiles ==24.1.0
+langchain ==0.3.27
+langchain-community
+pypdf==6.0.0
+PyPDF2==3.0.1
+PyMuPDF==1.26.3
+pdfplumber==0.11.7
+python-docx==1.2.0
+unstructured==0.18.13
+docx2txt==0.8
+langchain-text-splitters == 0.3.9

@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     ]
     FILE_DEFAULT_CHUNK_SIZE: int = 512000  # 512KB
     FILE_MAX_SIZE: int = 10  # 10MB 
-
+    
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
