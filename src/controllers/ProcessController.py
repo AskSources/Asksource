@@ -2,7 +2,7 @@ from .BaseController import BaseController
 from langchain_community.document_loaders import PyPDFLoader, TextLoader, Docx2txtLoader, UnstructuredExcelLoader, PDFPlumberLoader
 from langchain_community.document_loaders import UnstructuredWordDocumentLoader  
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from models import ProcessingEnum
+from ..models import ProcessingEnum
 from .ProjectController import ProjectController
 import os
 
