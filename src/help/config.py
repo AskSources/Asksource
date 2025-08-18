@@ -1,38 +1,34 @@
+import os
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
+from pathlib import Path
 
+
+ENV_FILE_PATH = Path(__file__).parent.parent / '.env'
 
 class Settings(BaseSettings):
-
-    app_name: str = "HYBRID-RAG-DGPC"
-    app_version: str = "0.1"
+    MONGODB_URL: str
+    MONGODB_DATABASE: str
+    APP_NAME: str
+    APP_VERSION: str
 
     FILE_ALLOWED_TYPES: list[str] = [
         "application/pdf",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",  # .docx
-        "application/msword",  # .doc
-        "text/plain",  # .txt
-        "application/vnd.ms-excel",  # .xls
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"  # .xlsx
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/msword",
+        "text/plain",
+        "application/vnd.ms-excel",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     ]
-    FILE_DEFAULT_CHUNK_SIZE: int = 512000  # 512KB
-    FILE_MAX_SIZE: int = 10  # 10MB 
+    FILE_DEFAULT_CHUNK_SIZE: int = 512000
+    FILE_MAX_SIZE: int = 10
 
-    MONGODB_URL: str
-    MONGODB_DATABASE: str
-    
-    # class Config:
-    #     env_file = ".env"
-    #     env_file_encoding = "utf-8"
-    #     extra = "ignore"
     model_config = SettingsConfigDict(
-        env_file='.env',
+        env_file=str(ENV_FILE_PATH), 
         env_file_encoding='utf-8',
         extra='ignore'
     )
+
 @lru_cache()
 def get_settings():
     return Settings()
-
-# def get_settings() -> Settings:
-#     return Settings()

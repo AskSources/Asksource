@@ -34,5 +34,11 @@ $ cp .env.exemple .env
 ```
 ### pour excuter le server de uvicorn
 ```bash
-$ uvicorn main:app --reload --host 0.0.0.0 --port 5000
+$ uvicorn src.main:app --reload --reload-dir src --host 0.0.0.0 --port 5000
 ```
+
+### telecharger  studio 3T pour voir le db_mongo
+[click ici pour le telecharger ](https://studio3t.com/fr/download/)
+1) Cree db dans studio 3T 
+2) faire attentions de ajouter la méme port de configiration de fichier docker-compose.yml
+3) Remplire  le configue de .env (url db_mongo , Nom_db)
