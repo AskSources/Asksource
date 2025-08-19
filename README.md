@@ -42,3 +42,14 @@ $ uvicorn src.main:app --reload --reload-dir src --host 0.0.0.0 --port 5000
 1) Cree db dans studio 3T 
 2) faire attentions de ajouter la méme port de configiration de fichier docker-compose.yml
 3) Remplire  le configue de .env (url db_mongo , Nom_db)
+
+### Excution Docker compose services
+ ```bash
+ $ cd docker
+ $ cp .env.example .env
+ ```
+### update .evn
+  ```bash
+ $ cd docker
+ $ cp .env.example .env
+ ```
