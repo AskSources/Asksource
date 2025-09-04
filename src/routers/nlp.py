@@ -77,7 +77,9 @@ async def index_project(request: Request, project_id: str, push_request: PushReq
                 }
             )
         
-        inserted_items_count += len(page_chunks)
+        inserted_items_count = await nlp_controller.reindex_project(
+        project=project,
+        chunk_model=chunk_model)
         
     return JSONResponse(
         content={

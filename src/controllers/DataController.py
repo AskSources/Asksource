@@ -53,3 +53,11 @@ class DataController(BaseController):
         cleaned_file_name = cleaned_file_name.replace(" ", "_")
 
         return cleaned_file_name
+    
+    def delete_physical_file(self, project_id: str, file_name: str):
+        project_path = ProjectController().get_project_path(project_id=project_id)
+        file_path = os.path.join(project_path, file_name)
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            return True
+        return False

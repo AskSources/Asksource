@@ -19,3 +19,7 @@ class ResponseSignal(Enum):
     VECTORDB_SEARCH_SUCCESS = "vectordb_search_success"
     RAG_ANSWER_ERROR = "rag_answer_error"
     RAG_ANSWER_SUCCESS = "rag_answer_success"
+    FILE_DELETED_SUCCESSFULLY = "file_deleted_successfully"
+    FILE_DELETE_FAILED = "file_delete_failed"
+    FILE_UPDATED_SUCCESSFULLY = "file_updated_successfully"
+    FILE_UPDATE_FAILED = "file_update_failed"

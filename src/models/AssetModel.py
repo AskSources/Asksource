@@ -2,6 +2,7 @@ from .BaseDataModel import BaseDataModel
 from .db_schemes import Asset
 from .enums.DataBaseEnum import DataBaseEnum
 from bson import ObjectId
+from datetime import datetime
 
 class AssetModel(BaseDataModel):
 
@@ -57,3 +58,19 @@ class AssetModel(BaseDataModel):
             return Asset(**record)
         
         return None
+    
+    async def delete_asset(self, asset_id: ObjectId):
+        result = await self.collection.delete_one({"_id": asset_id})
+        return result.deleted_count > 0
+    
+    async def update_asset_record(self, asset_id: ObjectId, new_size: int):
+        result = await self.collection.update_one(
+            {"_id": asset_id},
+            {
+                "$set": {
+                    "asset_size": new_size,
+                    "asset_pushed_at": datetime.utcnow()
+                }
+            }
+        )
+        return result.modified_count > 0

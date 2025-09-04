@@ -3,6 +3,9 @@ from ..models.db_schemes import Project, DataChunk
 from ..stores.llm.LLMEnums import DocumentTypeEnum
 from typing import List
 import json
+from ..models.ChunkModel import ChunkModel
+import logging
+logger = logging.getLogger(__name__)
 
 class NLPController(BaseController):
 
@@ -132,3 +135,43 @@ class NLPController(BaseController):
         )
 
         return answer, full_prompt, chat_history
+    
+    async def reindex_project(self, project: Project, chunk_model: ChunkModel):
+        """
+        Deletes the entire vector collection and re-indexes all chunks
+        from MongoDB for a given project.
+        """
+        logger.info(f"Starting auto re-indexing for project: {project.project_id}")
+
+        has_records = True
+        page_no = 1
+        inserted_items_count = 0
+        is_first_batch = True
+
+        while has_records:
+            page_chunks = await chunk_model.get_project_chunks(project_id=project.id, page_no=page_no)
+
+            if not page_chunks or len(page_chunks) == 0:
+                has_records = False
+                # If no chunks are left, ensure the vector collection is cleared.
+                if is_first_batch:
+                    collection_name = self.create_collection_name(project_id=project.project_id)
+                    self.vectordb_client.delete_collection(collection_name=collection_name)
+                    logger.warning(f"Project {project.project_id} has no chunks. Vector DB collection cleared.")
+                break
+
+            page_no += 1
+            chunks_ids = list(range(inserted_items_count, inserted_items_count + len(page_chunks)))
+
+            self.index_into_vector_db(
+                project=project,
+                chunks=page_chunks,
+                do_reset=is_first_batch,
+                chunks_ids=chunks_ids
+            )
+
+            is_first_batch = False
+            inserted_items_count += len(page_chunks)
+
+        logger.info(f"Finished auto re-indexing for project: {project.project_id}. Total chunks indexed: {inserted_items_count}")
+        return inserted_items_count

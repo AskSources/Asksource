@@ -12,6 +12,8 @@ from ..models.ChunkModel import ChunkModel
 from ..models.AssetModel import AssetModel
 from ..models.db_schemes import DataChunk, Asset
 from ..models.enums.AssetTypeEnum import AssetTypeEnum
+from ..controllers import NLPController
+from ..models.db_schemes import DataChunk
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -204,5 +206,159 @@ async def process_endpoint(request: Request, project_id: str, process_request: P
             "signal": ResponseSignal.PROCESSING_SUCCESS.value,
             "inserted_chunks": no_records,
             "processed_files": no_files
+        }
+    )
+
+
+@data_router.delete("/delete/{project_id}/{asset_name}")
+async def delete_asset(request: Request, project_id: str, asset_name: str):
+
+    # Step 1: Get the project
+    project_model = await ProjectModel.create_instance(db_client=request.app.db_client)
+    project = await project_model.get_project_or_create_one(project_id=project_id)
+
+    # Step 2: Find the asset to ensure it exists and belongs to the project
+    asset_model = await AssetModel.create_instance(db_client=request.app.db_client)
+    asset_to_delete = await asset_model.get_asset_record(
+        asset_project_id=project.id,
+        asset_name=asset_name
+    )
+
+    if asset_to_delete is None:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"signal": ResponseSignal.FILE_ID_ERROR.value}
+        )
+
+    # Note: We are not deleting vectors from Qdrant yet as it requires a more complex setup
+    # to track vector IDs associated with each asset. This can be a future enhancement.
+
+    # Step 3: Delete chunks from MongoDB
+    chunk_model = await ChunkModel.create_instance(db_client=request.app.db_client)
+    await chunk_model.delete_chunks_by_asset_id(asset_id=asset_to_delete.id)
+
+    # Step 4: Delete the physical file from the server
+    data_controller = DataController()
+    data_controller.delete_physical_file(project_id=project_id, file_name=asset_to_delete.asset_name)
+
+    # Step 5: Delete the asset record from MongoDB
+    is_deleted = await asset_model.delete_asset(asset_id=asset_to_delete.id)
+
+    if not is_deleted:
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"signal": ResponseSignal.FILE_DELETE_FAILED.value}
+        )
+    
+    # Step 6: Auto re-index the entire project
+    if is_deleted:
+        nlp_controller = NLPController(
+            vectordb_client=request.app.vectordb_client,
+            generation_client=request.app.generation_client,
+            embedding_client=request.app.embedding_client,
+            template_parser=request.app.template_parser,
+        )
+        await nlp_controller.reindex_project(project=project, chunk_model=chunk_model)
+
+
+    return JSONResponse(
+        content={
+            "signal": ResponseSignal.FILE_DELETED_SUCCESSFULLY.value,
+            "deleted_asset_name": asset_to_delete.asset_name,
+            "message": "File deleted and project automatically re-indexed."
+        }
+    )
+
+
+@data_router.put("/update/{project_id}/{asset_name}")
+async def update_asset(request: Request, project_id: str, asset_name: str, file: UploadFile,
+                      app_settings: Settings = Depends(get_settings)):
+    
+    # Step 1: Get project
+    project_model = await ProjectModel.create_instance(db_client=request.app.db_client)
+    project = await project_model.get_project_or_create_one(project_id=project_id)
+
+    # Step 2: Find the asset to update
+    asset_model = await AssetModel.create_instance(db_client=request.app.db_client)
+    asset_to_update = await asset_model.get_asset_record(
+        asset_project_id=project.id,
+        asset_name=asset_name
+    )
+
+    if asset_to_update is None:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"signal": ResponseSignal.FILE_ID_ERROR.value}
+        )
+
+    # Step 3: Validate the new file
+    data_controller = DataController()
+    is_valid, result_signal = data_controller.validate_uploaded_file(file=file)
+    if not is_valid:
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"signal": result_signal}
+        )
+
+    # Step 4: Delete old chunks from MongoDB
+    chunk_model = await ChunkModel.create_instance(db_client=request.app.db_client)
+    await chunk_model.delete_chunks_by_asset_id(asset_id=asset_to_update.id)
+    
+    # Step 5: Overwrite the physical file
+    project_dir_path = ProjectController().get_project_path(project_id=project_id)
+    file_path = os.path.join(project_dir_path, asset_to_update.asset_name)
+
+    try:
+        async with aiofiles.open(file_path, "wb") as f:
+            while chunk := await file.read(app_settings.FILE_DEFAULT_CHUNK_SIZE):
+                await f.write(chunk)
+    except Exception as e:
+        logger.error(f"Error while updating file: {e}")
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"signal": ResponseSignal.FILE_UPLOAD_FAILED.value}
+        )
+    
+    # Step 6: Update the asset record in MongoDB with new size and date
+    new_file_size = os.path.getsize(file_path)
+    await asset_model.update_asset_record(
+        asset_id=asset_to_update.id,
+        new_size=new_file_size
+    )
+
+    # Step 7: Auto re-process the updated file to create new chunks
+    process_controller = ProcessController(project_id=project_id)
+    file_content = process_controller.get_file_content(file_id=asset_to_update.asset_name)
+
+    if file_content:
+        file_chunks = process_controller.process_file_content(
+            file_content=file_content, file_id=asset_to_update.asset_name
+        )
+        if file_chunks:
+            file_chunks_records = [
+                DataChunk(
+                    chunk_text=chunk.page_content, chunk_metadata=chunk.metadata,
+                    chunk_order=i + 1, chunk_project_id=project.id,
+                    chunk_asset_id=asset_to_update.id
+                ) for i, chunk in enumerate(file_chunks)
+            ]
+            await chunk_model.insert_many_chunks(chunks=file_chunks_records)
+
+    # Step 8: Auto re-index the entire project
+    nlp_controller = NLPController(
+        vectordb_client=request.app.vectordb_client,
+        generation_client=request.app.generation_client,
+        embedding_client=request.app.embedding_client,
+        template_parser=request.app.template_parser,
+    )
+    inserted_count = await nlp_controller.reindex_project(project=project, chunk_model=chunk_model)
+
+
+
+    return JSONResponse(
+        content={
+            "signal": ResponseSignal.FILE_UPDATED_SUCCESSFULLY.value,
+            "asset_name": asset_to_update.asset_name,
+            "message": f"File updated. Project automatically re-indexed with {inserted_count} total chunks."
         }
     )
