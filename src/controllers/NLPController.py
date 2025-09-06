@@ -10,14 +10,15 @@ logger = logging.getLogger(__name__)
 class NLPController(BaseController):
 
     def __init__(self, vectordb_client, generation_client, 
-                 embedding_client, template_parser):
+                 embedding_client, template_parser, sparse_embedding_client, reranker_client):
         super().__init__()
 
         self.vectordb_client = vectordb_client
         self.generation_client = generation_client
         self.embedding_client = embedding_client
+        self.sparse_embedding_client = sparse_embedding_client
         self.template_parser = template_parser
-
+        self.reranker_client = reranker_client
     def create_collection_name(self, project_id: str):
         return f"collection_{project_id}".strip()
     
@@ -43,9 +44,16 @@ class NLPController(BaseController):
         # step2: manage items
         texts = [ c.chunk_text for c in chunks ]
         metadata = [ c.chunk_metadata for c in  chunks]
-        vectors = [
+        # Generate dense vectors (existing logic)
+        dense_vectors = [
             self.embedding_client.embed_text(text=text, 
                                              document_type=DocumentTypeEnum.DOCUMENT.value)
+            for text in texts
+        ]
+
+        # Generate sparse vectors (new logic)
+        sparse_vectors = [
+            self.sparse_embedding_client.generate_sparse_vector(text=text)
             for text in texts
         ]
 
@@ -56,12 +64,13 @@ class NLPController(BaseController):
             do_reset=do_reset,
         )
 
-        # step4: insert into vector db
+        # Pass both vector types to the insert function
         _ = self.vectordb_client.insert_many(
             collection_name=collection_name,
             texts=texts,
             metadata=metadata,
-            vectors=vectors,
+            dense_vectors=dense_vectors, # Changed from "vectors"
+            sparse_vectors=sparse_vectors, # Add this
             record_ids=chunks_ids,
         )
 
@@ -175,3 +184,61 @@ class NLPController(BaseController):
 
         logger.info(f"Finished auto re-indexing for project: {project.project_id}. Total chunks indexed: {inserted_items_count}")
         return inserted_items_count
+    
+    def search_hybrid_collection(self, project: Project, text: str, 
+                                 dense_limit: int, sparse_limit: int, limit: int):
+        
+        collection_name = self.create_collection_name(project_id=project.project_id)
+
+        # Step 1: Generate dense vector for the query
+        dense_vector = self.embedding_client.embed_text(
+            text=text, 
+            document_type=DocumentTypeEnum.QUERY.value
+        )
+        if not dense_vector:
+            return None
+
+        # Step 2: Generate sparse vector for the query
+        sparse_vector = self.sparse_embedding_client.generate_sparse_vector(text=text)
+        if not sparse_vector:
+            return None
+        
+        # Step 3: Perform hybrid search
+        results = self.vectordb_client.search_hybrid(
+            collection_name=collection_name,
+            dense_vector=dense_vector,
+            sparse_vector=sparse_vector,
+            dense_limit=dense_limit,
+            sparse_limit=sparse_limit,
+            limit=limit
+        )
+
+        return results
+    
+    def search_hybrid_with_rerank(self, project: Project, text: str, 
+                                  dense_limit: int, sparse_limit: int, 
+                                  rerank_limit: int):
+        
+        # Step 1: Perform an initial hybrid search to get candidate documents.
+        # We fetch more documents than needed (e.g., 25) to give the reranker a good selection.
+        initial_candidates = self.search_hybrid_collection(
+            project=project,
+            text=text,
+            dense_limit=dense_limit,
+            sparse_limit=sparse_limit,
+            limit=rerank_limit * 3  # Fetch more candidates for reranking
+        )
+
+        if not initial_candidates:
+            return None
+
+        # Step 2: Rerank the candidates using the Cross-Encoder model.
+        # The documents need to be converted to dicts for the reranker.
+        candidate_dicts = [doc.dict() for doc in initial_candidates]
+        reranked_results = self.reranker_client.rerank_documents(
+            query=text,
+            documents=candidate_dicts
+        )
+
+        # Step 3: Return the top N results after reranking.
+        return reranked_results[:rerank_limit]

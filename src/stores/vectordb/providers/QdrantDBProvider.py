@@ -46,13 +46,26 @@ class QdrantDBProvider(VectorDBInterface):
             _ = self.delete_collection(collection_name=collection_name)
         
         if not self.is_collection_existed(collection_name):
+             # START of changes
             _ = self.client.create_collection(
                 collection_name=collection_name,
-                vectors_config=models.VectorParams(
-                    size=embedding_size,
-                    distance=self.distance_method
-                )
+                vectors_config={
+                    # Dense vectors for semantic search
+                    "dense": models.VectorParams(
+                        size=embedding_size,
+                        distance=self.distance_method
+                    ),
+                },
+                # Sparse vectors for keyword search
+                sparse_vectors_config={
+                   "sparse": models.SparseVectorParams(
+                       index=models.SparseIndexParams(
+                           on_disk=False,
+                       )
+                   )
+                }
             )
+            # END of changes
 
             return True
         
@@ -86,7 +99,8 @@ class QdrantDBProvider(VectorDBInterface):
         return True
     
     def insert_many(self, collection_name: str, texts: list, 
-                          vectors: list, metadata: list = None, 
+                          dense_vectors: list, sparse_vectors: list, # Modified parameters
+                          metadata: list = None, 
                           record_ids: list = None, batch_size: int = 50):
         
         if metadata is None:
@@ -99,19 +113,22 @@ class QdrantDBProvider(VectorDBInterface):
             batch_end = i + batch_size
 
             batch_texts = texts[i:batch_end]
-            batch_vectors = vectors[i:batch_end]
+            batch_dense_vectors = dense_vectors[i:batch_end]
+            batch_sparse_vectors = sparse_vectors[i:batch_end]
             batch_metadata = metadata[i:batch_end]
             batch_record_ids = record_ids[i:batch_end]
 
             batch_records = [
                 models.Record(
                     id=batch_record_ids[x],
-                    vector=batch_vectors[x],
+                    vector={
+                        "dense": batch_dense_vectors[x],
+                        "sparse": models.SparseVector(**batch_sparse_vectors[x])
+                    },
                     payload={
                         "text": batch_texts[x], "metadata": batch_metadata[x]
                     }
                 )
-
                 for x in range(len(batch_texts))
             ]
 
@@ -127,14 +144,16 @@ class QdrantDBProvider(VectorDBInterface):
         return True
         
     def search_by_vector(self, collection_name: str, vector: list, limit: int = 5):
-
-        results = self.client.search(
+        
+        # Use the modern query_points API for simple dense search
+        results = self.client.query_points(
             collection_name=collection_name,
-            query_vector=vector,
+            query=vector,  # For simple search, the vector goes directly into 'query'
+            using="dense", # Specify which named vector to use
             limit=limit
         )
 
-        if not results or len(results) == 0:
+        if not results or not hasattr(results, 'points') or len(results.points) == 0:
             return None
         
         return [
@@ -142,5 +161,42 @@ class QdrantDBProvider(VectorDBInterface):
                 "score": result.score,
                 "text": result.payload["text"],
             })
-            for result in results
+            for result in results.points
+        ]
+    
+
+    def search_hybrid(self, collection_name: str, dense_vector: list, sparse_vector: dict,
+                      dense_limit: int, sparse_limit: int, limit: int):
+        
+        # Define the two searches we want to run in parallel
+        prefetches = [
+            models.Prefetch(
+                query=dense_vector,
+                using="dense",
+                limit=dense_limit,
+            ),
+            models.Prefetch(
+                query=models.SparseVector(**sparse_vector),
+                using="sparse",
+                limit=sparse_limit
+            )
+        ]
+
+        # Use Reciprocal Rank Fusion (RRF) to combine the results
+        results = self.client.query_points(
+            collection_name=collection_name,
+            query=models.FusionQuery(fusion=models.Fusion.RRF),
+            prefetch=prefetches,
+            limit=limit
+        )
+
+        if not results or len(results.points) == 0:
+            return None
+        
+        return [
+            RetrievedDocument(**{
+                "score": result.score,
+                "text": result.payload["text"],
+            })
+            for result in results.points
         ]

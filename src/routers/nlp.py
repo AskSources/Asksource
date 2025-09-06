@@ -1,11 +1,12 @@
 from fastapi import FastAPI, APIRouter, status, Request
 from fastapi.responses import JSONResponse
-from .schemes.nlp import PushRequest, SearchRequest
+from .schemes.nlp import PushRequest, SearchRequest, HybridSearchRequest
 from ..models.ProjectModel import ProjectModel
 from ..models.ChunkModel import ChunkModel
 from ..controllers import NLPController
 from ..models import ResponseSignal
-
+from .schemes.nlp import PushRequest, SearchRequest, HybridSearchRequest, RerankSearchRequest
+from ..models.enums.ResponseEnums import ResponseSignal # Make sure this is imported
 import logging
 
 logger = logging.getLogger('uvicorn.error')
@@ -42,6 +43,8 @@ async def index_project(request: Request, project_id: str, push_request: PushReq
         vectordb_client=request.app.vectordb_client,
         generation_client=request.app.generation_client,
         embedding_client=request.app.embedding_client,
+        reranker_client=request.app.reranker_client,
+        sparse_embedding_client=request.app.sparse_embedding_client,
         template_parser=request.app.template_parser,
     )
 
@@ -103,6 +106,8 @@ async def get_project_index_info(request: Request, project_id: str):
         vectordb_client=request.app.vectordb_client,
         generation_client=request.app.generation_client,
         embedding_client=request.app.embedding_client,
+        reranker_client=request.app.reranker_client,
+        sparse_embedding_client=request.app.sparse_embedding_client,
         template_parser=request.app.template_parser,
     )
 
@@ -130,6 +135,8 @@ async def search_index(request: Request, project_id: str, search_request: Search
         vectordb_client=request.app.vectordb_client,
         generation_client=request.app.generation_client,
         embedding_client=request.app.embedding_client,
+        reranker_client=request.app.reranker_client,
+        sparse_embedding_client=request.app.sparse_embedding_client,
         template_parser=request.app.template_parser,
     )
 
@@ -152,6 +159,46 @@ async def search_index(request: Request, project_id: str, search_request: Search
         }
     )
 
+
+@nlp_router.post("/index/hybrid_search/{project_id}")
+async def hybrid_search_index(request: Request, project_id: str, search_request: HybridSearchRequest):
+    
+    project_model = await ProjectModel.create_instance(db_client=request.app.db_client)
+    project = await project_model.get_project_or_create_one(project_id=project_id)
+
+    nlp_controller = NLPController(
+        vectordb_client=request.app.vectordb_client,
+        generation_client=request.app.generation_client,
+        embedding_client=request.app.embedding_client,
+        reranker_client=request.app.reranker_client,
+        sparse_embedding_client=request.app.sparse_embedding_client, # Pass the new client
+        template_parser=request.app.template_parser,
+    )
+
+    results = nlp_controller.search_hybrid_collection(
+        project=project, 
+        text=search_request.text, 
+        dense_limit=search_request.dense_limit,
+        sparse_limit=search_request.sparse_limit,
+        limit=search_request.limit
+    )
+
+    if not results:
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"signal": ResponseSignal.VECTORDB_SEARCH_ERROR.value}
+        )
+    
+    return JSONResponse(
+        content={
+            "signal": ResponseSignal.VECTORDB_SEARCH_SUCCESS.value,
+            "results": [result.dict() for result in results]
+        }
+    )
+
+
+
+
 @nlp_router.post("/index/answer/{project_id}")
 async def answer_rag(request: Request, project_id: str, search_request: SearchRequest):
     
@@ -167,6 +214,8 @@ async def answer_rag(request: Request, project_id: str, search_request: SearchRe
         vectordb_client=request.app.vectordb_client,
         generation_client=request.app.generation_client,
         embedding_client=request.app.embedding_client,
+        reranker_client=request.app.reranker_client,
+        sparse_embedding_client=request.app.sparse_embedding_client,
         template_parser=request.app.template_parser,
     )
 
@@ -190,5 +239,42 @@ async def answer_rag(request: Request, project_id: str, search_request: SearchRe
             "answer": answer,
             "full_prompt": full_prompt,
             "chat_history": chat_history
+        }
+    )
+
+
+@nlp_router.post("/index/hybrid_search_cross/{project_id}")
+async def hybrid_search_cross_index(request: Request, project_id: str, search_request: RerankSearchRequest):
+    
+    project_model = await ProjectModel.create_instance(db_client=request.app.db_client)
+    project = await project_model.get_project_or_create_one(project_id=project_id)
+
+    nlp_controller = NLPController(
+        vectordb_client=request.app.vectordb_client,
+        generation_client=request.app.generation_client,
+        embedding_client=request.app.embedding_client,
+        sparse_embedding_client=request.app.sparse_embedding_client,
+        reranker_client=request.app.reranker_client, # Pass the new client
+        template_parser=request.app.template_parser,
+    )
+
+    results = nlp_controller.search_hybrid_with_rerank(
+        project=project, 
+        text=search_request.text, 
+        dense_limit=search_request.dense_limit,
+        sparse_limit=search_request.sparse_limit,
+        rerank_limit=search_request.limit
+    )
+
+    if not results:
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"signal": ResponseSignal.VECTORDB_SEARCH_ERROR.value}
+        )
+    
+    return JSONResponse(
+        content={
+            "signal": ResponseSignal.VECTORDB_SEARCH_SUCCESS.value,
+            "results": results # Results are already dicts from the reranker
         }
     )

@@ -6,6 +6,8 @@ from .help.config import Settings
 from .stores.llm.LLMProviderFactory import LLMProviderFactory
 from .stores.vectordb.VectorDBProviderFactory import VectorDBProviderFactory
 from .stores.llm.templates.template_parser import TemplateParser
+from .stores.sparse_embedding.SparseEmbeddingProvider import SparseEmbeddingProvider
+from .stores.reranker.CrossEncoderProvider import CrossEncoderProvider
 
 
 app = FastAPI()
@@ -35,6 +37,13 @@ async def startup_db_client():
         language=settings.PRIMARY_LANG,
         default_language=settings.DEFAULT_LANG,
     )
+    
+    # sparse embedding client
+    app.sparse_embedding_client = SparseEmbeddingProvider()
+    
+     # reranker client
+    app.reranker_client = CrossEncoderProvider()
+
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
