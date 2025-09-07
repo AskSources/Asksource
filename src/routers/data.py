@@ -256,6 +256,8 @@ async def delete_asset(request: Request, project_id: str, asset_name: str):
             vectordb_client=request.app.vectordb_client,
             generation_client=request.app.generation_client,
             embedding_client=request.app.embedding_client,
+            sparse_embedding_client=request.app.sparse_embedding_client, 
+            reranker_client=request.app.reranker_client,
             template_parser=request.app.template_parser,
         )
         await nlp_controller.reindex_project(project=project, chunk_model=chunk_model)
@@ -349,6 +351,8 @@ async def update_asset(request: Request, project_id: str, asset_name: str, file:
         vectordb_client=request.app.vectordb_client,
         generation_client=request.app.generation_client,
         embedding_client=request.app.embedding_client,
+        sparse_embedding_client=request.app.sparse_embedding_client, # تمت إضافته
+        reranker_client=request.app.reranker_client,
         template_parser=request.app.template_parser,
     )
     inserted_count = await nlp_controller.reindex_project(project=project, chunk_model=chunk_model)
