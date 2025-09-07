@@ -362,3 +362,5 @@ async def update_asset(request: Request, project_id: str, asset_name: str, file:
             "message": f"File updated. Project automatically re-indexed with {inserted_count} total chunks."
         }
     )
+
+

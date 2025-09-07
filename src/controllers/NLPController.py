@@ -159,7 +159,7 @@ class NLPController(BaseController):
 
         while has_records:
             page_chunks = await chunk_model.get_project_chunks(project_id=project.id, page_no=page_no)
-
+            
             if not page_chunks or len(page_chunks) == 0:
                 has_records = False
                 # If no chunks are left, ensure the vector collection is cleared.

@@ -79,3 +79,27 @@ class ChunkModel(BaseDataModel):
             "chunk_asset_id": asset_id
         })
         return result.deleted_count
+    
+    async def get_project_indexable_chunks(self, project_id: ObjectId, page_no: int=1, page_size: int=50):
+        """
+        Fetches only the chunks that should be indexed in the vector DB
+        (i.e., 'child' chunks and regular chunks that have no type).
+        """
+        query = {
+            "chunk_project_id": project_id,
+            "$or": [
+                {"chunk_type": "child"},
+                {"chunk_type": {"$exists": False}} # For regular chunks from the old process
+            ]
+        }
+        
+        records = await self.collection.find(query).skip(
+            (page_no-1) * page_size
+        ).limit(page_size).to_list(length=None)
+
+        return [
+            DataChunk(**record)
+            for record in records
+        ]
+    
+    
