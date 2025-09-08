@@ -199,7 +199,7 @@ async def hybrid_search_index(request: Request, project_id: str, search_request:
 
 
 
-@nlp_router.post("/index/answer/{project_id}")
+@nlp_router.post("/index/answer_search/{project_id}")
 async def answer_rag(request: Request, project_id: str, search_request: SearchRequest):
     
     project_model = await ProjectModel.create_instance(
