@@ -228,7 +228,9 @@ class NLPController(BaseController):
             for idx, doc in enumerate(retrieved_documents)
         ])
 
-        footer_prompt = self.template_parser.get("rag", "footer_prompt")
+        footer_prompt = self.template_parser.get("rag", "footer_prompt", {
+            "query": query
+        })
 
         # step3: Construct Generation Client Prompts
         chat_history = [
@@ -248,3 +250,106 @@ class NLPController(BaseController):
 
         return answer, full_prompt, chat_history
     
+
+    def answer_rag_question_hybrid(self, project: Project, query: str, 
+                                   dense_limit: int, sparse_limit: int, 
+                                   limit: int):
+        
+        answer, full_prompt, chat_history = None, None, None
+
+        # Step 1: Retrieve related documents using HYBRID SEARCH
+        retrieved_documents = self.search_hybrid_collection(
+            project=project,
+            text=query,
+            dense_limit=dense_limit,
+            sparse_limit=sparse_limit,
+            limit=limit,
+        )
+
+        if not retrieved_documents or len(retrieved_documents) == 0:
+            return answer, full_prompt, chat_history
+        
+        # Step 2: Construct LLM prompt (This logic remains the same)
+        system_prompt = self.template_parser.get("rag", "system_prompt")
+
+        documents_prompts = "\n".join([
+            self.template_parser.get("rag", "document_prompt", {
+                    "doc_num": idx + 1,
+                    "chunk_text": doc.text,
+            })
+            for idx, doc in enumerate(retrieved_documents)
+        ])
+
+        footer_prompt = self.template_parser.get("rag", "footer_prompt", {
+            "query": query
+        })
+
+        # Step 3: Construct Generation Client Prompts (This logic remains the same)
+        chat_history = [
+            self.generation_client.construct_prompt(
+                prompt=system_prompt,
+                role=self.generation_client.enums.SYSTEM.value,
+            )
+        ]
+
+        full_prompt = "\n\n".join([ documents_prompts,  footer_prompt])
+
+        # Step 4: Retrieve the Answer (This logic remains the same)
+        answer = self.generation_client.generate_text(
+            prompt=full_prompt,
+            chat_history=chat_history
+        )
+
+        return answer, full_prompt, chat_history
+    
+    def answer_rag_question_hybrid_cross(self, project: Project, query: str, 
+                                         dense_limit: int, sparse_limit: int, 
+                                         limit: int):
+        
+        answer, full_prompt, chat_history = None, None, None
+
+        # Step 1: Retrieve the best possible documents using hybrid search + reranker
+        reranked_documents = self.search_hybrid_with_rerank(
+            project=project,
+            text=query,
+            dense_limit=dense_limit,
+            sparse_limit=sparse_limit,
+            rerank_limit=limit, # Use the final limit for the reranker
+        )
+
+        if not reranked_documents or len(reranked_documents) == 0:
+            return answer, full_prompt, chat_history
+        
+        # Step 2: Construct LLM prompt (Same logic as before)
+        system_prompt = self.template_parser.get("rag", "system_prompt")
+
+        # The reranked_documents are already dicts, so we access text with ['text']
+        documents_prompts = "\n".join([
+            self.template_parser.get("rag", "document_prompt", {
+                    "doc_num": idx + 1,
+                    "chunk_text": doc['text'],
+            })
+            for idx, doc in enumerate(reranked_documents)
+        ])
+
+        footer_prompt = self.template_parser.get("rag", "footer_prompt", {
+            "query": query
+        })
+
+        # Step 3: Construct Generation Client Prompts (Same logic as before)
+        chat_history = [
+            self.generation_client.construct_prompt(
+                prompt=system_prompt,
+                role=self.generation_client.enums.SYSTEM.value,
+            )
+        ]
+
+        full_prompt = "\n\n".join([ documents_prompts,  footer_prompt])
+
+        # Step 4: Retrieve the Answer (Same logic as before)
+        answer = self.generation_client.generate_text(
+            prompt=full_prompt,
+            chat_history=chat_history
+        )
+
+        return answer, full_prompt, chat_history

@@ -278,3 +278,81 @@ async def hybrid_search_cross_index(request: Request, project_id: str, search_re
             "results": results # Results are already dicts from the reranker
         }
     )
+
+
+@nlp_router.post("/index/answer_hybrid/{project_id}")
+async def answer_rag_hybrid(request: Request, project_id: str, search_request: HybridSearchRequest):
+    
+    project_model = await ProjectModel.create_instance(db_client=request.app.db_client)
+    project = await project_model.get_project_or_create_one(project_id=project_id)
+
+    nlp_controller = NLPController(
+        vectordb_client=request.app.vectordb_client,
+        generation_client=request.app.generation_client,
+        embedding_client=request.app.embedding_client,
+        sparse_embedding_client=request.app.sparse_embedding_client,
+        reranker_client=request.app.reranker_client,
+        template_parser=request.app.template_parser,
+    )
+
+    answer, full_prompt, chat_history =  nlp_controller.answer_rag_question_hybrid(
+        project=project,
+        query=search_request.text,
+        dense_limit=search_request.dense_limit,
+        sparse_limit=search_request.sparse_limit,
+        limit=search_request.limit,
+    )
+
+    if not answer:
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"signal": ResponseSignal.RAG_ANSWER_ERROR.value}
+        )
+    
+    return JSONResponse(
+        content={
+            "signal": ResponseSignal.RAG_ANSWER_SUCCESS.value,
+            "answer": answer,
+            "full_prompt": full_prompt,
+            "chat_history": chat_history
+        }
+    )
+
+
+@nlp_router.post("/index/answer_hybrid_cross/{project_id}")
+async def answer_rag_hybrid_cross(request: Request, project_id: str, search_request: RerankSearchRequest):
+    
+    project_model = await ProjectModel.create_instance(db_client=request.app.db_client)
+    project = await project_model.get_project_or_create_one(project_id=project_id)
+
+    nlp_controller = NLPController(
+        vectordb_client=request.app.vectordb_client,
+        generation_client=request.app.generation_client,
+        embedding_client=request.app.embedding_client,
+        sparse_embedding_client=request.app.sparse_embedding_client,
+        reranker_client=request.app.reranker_client,
+        template_parser=request.app.template_parser,
+    )
+
+    answer, full_prompt, chat_history = nlp_controller.answer_rag_question_hybrid_cross(
+        project=project,
+        query=search_request.text,
+        dense_limit=search_request.dense_limit,
+        sparse_limit=search_request.sparse_limit,
+        limit=search_request.limit,
+    )
+
+    if not answer:
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"signal": ResponseSignal.RAG_ANSWER_ERROR.value}
+        )
+    
+    return JSONResponse(
+        content={
+            "signal": ResponseSignal.RAG_ANSWER_SUCCESS.value,
+            "answer": answer,
+            "full_prompt": full_prompt,
+            "chat_history": chat_history
+        }
+    )

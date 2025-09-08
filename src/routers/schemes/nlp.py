@@ -11,11 +11,11 @@ class SearchRequest(BaseModel):
 class HybridSearchRequest(BaseModel):
     text: str
     dense_limit: Optional[int] = 10
-    sparse_limit: Optional[int] = 10
+    sparse_limit: Optional[int] = 5
     limit: Optional[int] = 5    
 
 class RerankSearchRequest(BaseModel):
     text: str
     dense_limit: Optional[int] = 10
-    sparse_limit: Optional[int] = 10
+    sparse_limit: Optional[int] = 5
     limit: Optional[int] = 5
