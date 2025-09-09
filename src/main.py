@@ -39,10 +39,10 @@ async def startup_db_client():
     )
     
     # sparse embedding client
-    app.sparse_embedding_client = SparseEmbeddingProvider()
+    app.sparse_embedding_client = SparseEmbeddingProvider(model_id=settings.SPLADE_MODEL_ID)
     
      # reranker client
-    app.reranker_client = CrossEncoderProvider()
+    app.reranker_client = CrossEncoderProvider(model_id=settings.RERANKER_MODEL_ID)
 
 
 @app.on_event("shutdown")

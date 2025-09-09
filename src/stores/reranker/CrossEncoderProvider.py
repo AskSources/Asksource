@@ -2,7 +2,7 @@ from sentence_transformers import CrossEncoder
 from typing import List
 
 class CrossEncoderProvider:
-    def __init__(self, model_id: str = 'cross-encoder/mmarco-mMiniLMv2-L12-H384-v1'):
+    def __init__(self, model_id: str):
         # Load a pre-trained Cross-Encoder model
         self.model = CrossEncoder(model_id)
 

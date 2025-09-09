@@ -2,7 +2,7 @@ import torch
 from transformers import AutoModelForMaskedLM, AutoTokenizer
 
 class SparseEmbeddingProvider:
-    def __init__(self, model_id: str = 'opensearch-project/opensearch-neural-sparse-encoding-v1'):
+    def __init__(self, model_id: str ):
         self.tokenizer = AutoTokenizer.from_pretrained(model_id)
         self.model = AutoModelForMaskedLM.from_pretrained(model_id)
         self.model.eval()  # Set model to evaluation mode

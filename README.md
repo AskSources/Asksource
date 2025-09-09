@@ -53,3 +53,16 @@ $ uvicorn src.main:app --reload --reload-dir src --host 0.0.0.0 --port 5000
  $ cd docker
  $ cp .env.example .env
  ```
+
+ ### si vous avez des problemes pour la bibliotheque openai run comande suivante
+ ```bash
+ $ pip install --upgrade httpx httpcore openai
+ ```
+
+### Crée un compte sur huggingface pour telecharger le model slade et reranker
+[click ici pour acceder le site huggingface ](https://huggingface.co/)
+
+### Run la commande suivante pour connecter avec huggingface a la premier fois 
+```bash
+$ huggingface-cli login
+```
