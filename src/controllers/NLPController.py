@@ -5,6 +5,8 @@ from typing import List
 import json
 from ..models.ChunkModel import ChunkModel
 import logging
+from ..utils.metrics import EMBEDDINGS_COUNT , ANSWER_CONFIDENCE  , SPARSE_EMBEDDINGS_COUNT
+
 logger = logging.getLogger(__name__)
 
 class NLPController(BaseController):
@@ -50,12 +52,15 @@ class NLPController(BaseController):
                                              document_type=DocumentTypeEnum.DOCUMENT.value)
             for text in texts
         ]
-
+        
+        EMBEDDINGS_COUNT.inc(len(dense_vectors))
         # Generate sparse vectors (new logic)
         sparse_vectors = [
             self.sparse_embedding_client.generate_sparse_vector(text=text)
             for text in texts
         ]
+        
+        SPARSE_EMBEDDINGS_COUNT.inc(len(sparse_vectors))
 
         # step3: create collection if not exists
         _ = self.vectordb_client.create_collection(
@@ -247,7 +252,7 @@ class NLPController(BaseController):
             prompt=full_prompt,
             chat_history=chat_history
         )
-
+        ANSWER_CONFIDENCE.observe(1.0)
         return answer, full_prompt, chat_history
     
 
@@ -299,7 +304,7 @@ class NLPController(BaseController):
             prompt=full_prompt,
             chat_history=chat_history
         )
-
+        ANSWER_CONFIDENCE.observe(1.0)
         return answer, full_prompt, chat_history
     
     def answer_rag_question_hybrid_cross(self, project: Project, query: str, 
@@ -351,5 +356,5 @@ class NLPController(BaseController):
             prompt=full_prompt,
             chat_history=chat_history
         )
-
+        ANSWER_CONFIDENCE.observe(1.0)
         return answer, full_prompt, chat_history

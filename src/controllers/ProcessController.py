@@ -5,7 +5,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from ..models import ProcessingEnum
 from .ProjectController import ProjectController
 import os
-
+from ..utils.metrics import DOCS_INDEXED, CHUNKS_PER_QUERY 
 
 class ProcessController(BaseController):
     """Controller for processing files."""
@@ -69,6 +69,9 @@ class ProcessController(BaseController):
             file_content_texts,
             metadatas=file_content_metadata
         )
+
+        DOCS_INDEXED.inc()
+        CHUNKS_PER_QUERY.observe(len(chunks))
 
         return chunks
     

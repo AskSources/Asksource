@@ -8,9 +8,12 @@ from .stores.vectordb.VectorDBProviderFactory import VectorDBProviderFactory
 from .stores.llm.templates.template_parser import TemplateParser
 from .stores.sparse_embedding.SparseEmbeddingProvider import SparseEmbeddingProvider
 from .stores.reranker.CrossEncoderProvider import CrossEncoderProvider
-
+from utils.metrics import setup_metrics 
 
 app = FastAPI()
+
+setup_metrics(app)
+
 @app.on_event("startup")
 async def startup_db_client():
     settings = Settings()
