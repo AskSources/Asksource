@@ -1,6 +1,5 @@
 from  qdrant_client import models, QdrantClient
 from ..VectorDBEInterface import VectorDBInterface
-from ..VectorDBEInterface import VectorDBInterface
 from ..VectorDBEnums import DistanceMethodEnums
 import logging
 from typing import List

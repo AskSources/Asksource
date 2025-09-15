@@ -28,6 +28,11 @@ export PS1="\[\033[01;32m\]\u@\h:\w\n\[\033[00m\]\$ "
 ```bash
 $ pip install -r requirements.txt 
 ```
+
+### إصلاح مشاكل مكتبة OpenAI (مطلوب دائماً بعد تثبيت المتطلبات)
+```bash
+$ pip install --upgrade httpx httpcore openai
+```
 ### Remplire les variable d'enverenement 
 ```bash
 $ cp .env.exemple .env

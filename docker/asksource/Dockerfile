@@ -1,8 +1,10 @@
+# 1. Base image
 FROM ghcr.io/astral-sh/uv:0.6.14-python3.10-bookworm
 
+# 2. Set the working directory
 WORKDIR /app
 
-# Install additional system dependencies for lxml and other packages
+# 3. Install system dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
     libavif-dev pkg-config \
@@ -15,13 +17,15 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-COPY src/requirements.txt .
+# 4. Copy the entire project structure to maintain correct import paths
+COPY . .
 
-RUN uv pip install -r requirements.txt --system
+# 5. Install Python dependencies from src directory
+RUN UV_HTTP_TIMEOUT=300 uv pip install -r src/requirements.txt --system
 
-COPY src/ .
+# 5.1. Fix OpenAI library compatibility issues
+RUN UV_HTTP_TIMEOUT=300 uv pip install --upgrade httpx httpcore openai --system
 
-
-
-# Command to run the application
+# 6. Command to run the application
+# Use the correct module path to maintain the src structure
 CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]

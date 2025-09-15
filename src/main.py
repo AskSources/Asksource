@@ -8,7 +8,7 @@ from .stores.vectordb.VectorDBProviderFactory import VectorDBProviderFactory
 from .stores.llm.templates.template_parser import TemplateParser
 from .stores.sparse_embedding.SparseEmbeddingProvider import SparseEmbeddingProvider
 from .stores.reranker.CrossEncoderProvider import CrossEncoderProvider
-from utils.metrics import setup_metrics 
+from .utils.metrics import setup_metrics 
 
 app = FastAPI()
 

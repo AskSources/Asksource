@@ -222,6 +222,11 @@ class NLPController(BaseController):
         if not retrieved_documents or len(retrieved_documents) == 0:
             return answer, full_prompt, chat_history
         
+        # ===== confidence score=====
+        total_score = sum(doc.score for doc in retrieved_documents)
+        average_score = total_score / len(retrieved_documents) if retrieved_documents else 0
+        # ====================================
+
         # step2: Construct LLM prompt
         system_prompt = self.template_parser.get("rag", "system_prompt")
 
@@ -252,7 +257,7 @@ class NLPController(BaseController):
             prompt=full_prompt,
             chat_history=chat_history
         )
-        ANSWER_CONFIDENCE.observe(1.0)
+        ANSWER_CONFIDENCE.observe(average_score)
         return answer, full_prompt, chat_history
     
 
@@ -274,6 +279,11 @@ class NLPController(BaseController):
         if not retrieved_documents or len(retrieved_documents) == 0:
             return answer, full_prompt, chat_history
         
+        # ===== confidence score=====
+        total_score = sum(doc.score for doc in retrieved_documents)
+        average_score = total_score / len(retrieved_documents) if retrieved_documents else 0
+        # ====================================
+
         # Step 2: Construct LLM prompt (This logic remains the same)
         system_prompt = self.template_parser.get("rag", "system_prompt")
 
@@ -304,7 +314,7 @@ class NLPController(BaseController):
             prompt=full_prompt,
             chat_history=chat_history
         )
-        ANSWER_CONFIDENCE.observe(1.0)
+        ANSWER_CONFIDENCE.observe(average_score)
         return answer, full_prompt, chat_history
     
     def answer_rag_question_hybrid_cross(self, project: Project, query: str, 
@@ -325,6 +335,10 @@ class NLPController(BaseController):
         if not reranked_documents or len(reranked_documents) == 0:
             return answer, full_prompt, chat_history
         
+        # ===== confidence score =====
+        total_score = sum(doc['rerank_score'] for doc in reranked_documents)
+        average_score = total_score / len(reranked_documents) if reranked_documents else 0
+        # ====================================
         # Step 2: Construct LLM prompt (Same logic as before)
         system_prompt = self.template_parser.get("rag", "system_prompt")
 
@@ -356,5 +370,5 @@ class NLPController(BaseController):
             prompt=full_prompt,
             chat_history=chat_history
         )
-        ANSWER_CONFIDENCE.observe(1.0)
+        ANSWER_CONFIDENCE.observe(average_score)
         return answer, full_prompt, chat_history
