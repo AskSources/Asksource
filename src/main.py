@@ -9,8 +9,25 @@ from .stores.llm.templates.template_parser import TemplateParser
 from .stores.sparse_embedding.SparseEmbeddingProvider import SparseEmbeddingProvider
 from .stores.reranker.CrossEncoderProvider import CrossEncoderProvider
 from .utils.metrics import setup_metrics 
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
+
+# CORS Middleware Configuration
+origins = [
+    "http://localhost",
+    "http://localhost:3000",
+    # You can add the IP of your deployed frontend here as well
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 setup_metrics(app)
 
