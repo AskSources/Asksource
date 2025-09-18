@@ -272,6 +272,33 @@ async def delete_asset(request: Request, project_id: str, asset_name: str):
     )
 
 
+@data_router.get("/assets/{project_id}")
+async def get_assets(request: Request, project_id: str):
+    # Step 1: Get the project
+    project_model = await ProjectModel.create_instance(db_client=request.app.db_client)
+    project = await project_model.get_project_or_create_one(project_id=project_id)
+
+    if project is None:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"signal": ResponseSignal.PROJECT_NOT_FOUND_ERROR.value}
+        )
+
+    # Step 2: Get all assets for the project
+    asset_model = await AssetModel.create_instance(db_client=request.app.db_client)
+    assets = await asset_model.get_all_project_assets(
+        asset_project_id=project.id,
+        asset_type=AssetTypeEnum.FILE.value
+    )
+
+    # Step 3: Return the assets
+    return JSONResponse(
+        content={
+            "signal": "ASSETS_RETRIEVED_SUCCESSFULLY",
+            "assets": [asset.dict() for asset in assets]
+        }
+    )
+
 @data_router.put("/update/{project_id}/{asset_name}")
 async def update_asset(request: Request, project_id: str, asset_name: str, file: UploadFile,
                       app_settings: Settings = Depends(get_settings)):
