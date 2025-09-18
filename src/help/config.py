@@ -48,6 +48,8 @@ class Settings(BaseSettings):
     PRIMARY_LANG: str = "en"
     DEFAULT_LANG: str = "en"
 
+    QDRANT_URL: str = None
+    
     model_config = SettingsConfigDict(
         env_file=str(ENV_FILE_PATH), 
         env_file_encoding='utf-8',
