@@ -395,3 +395,48 @@ async def update_asset(request: Request, project_id: str, asset_name: str, file:
     )
 
 
+# ----- BEGIN NEW CODE FOR PROJECTS -----
+@data_router.get("/projects")
+async def get_all_projects(request: Request):
+    project_model = await ProjectModel.create_instance(db_client=request.app.db_client)
+    projects, _ = await project_model.get_all_projects()
+
+    # Convert ObjectId to string for JSON serialization
+    projects_list = [p.dict() for p in projects]
+    for p_data in projects_list:
+        p_data['id'] = str(p_data['id'])
+
+    return JSONResponse(
+        content={
+            "signal": "PROJECTS_RETRIEVED_SUCCESSFULLY",
+            "projects": projects_list
+        }
+    )
+
+@data_router.post("/projects")
+async def create_project(request: Request):
+    body = await request.json()
+    project_id = body.get("project_id")
+
+    if not project_id:
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"signal": "PROJECT_ID_IS_REQUIRED"}
+        )
+
+    project_model = await ProjectModel.create_instance(db_client=request.app.db_client)
+    # The get_project_or_create_one function handles creation
+    project = await project_model.get_project_or_create_one(project_id=project_id)
+
+    project_data = project.dict()
+    project_data['id'] = str(project_data['id'])
+
+    return JSONResponse(
+        status_code=status.HTTP_201_CREATED,
+        content={
+            "signal": "PROJECT_CREATED_SUCCESSFULLY",
+            "project": project_data
+        }
+    )
+# ----- END NEW CODE FOR PROJECTS -----
+
