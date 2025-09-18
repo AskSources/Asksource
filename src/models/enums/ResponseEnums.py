@@ -16,7 +16,7 @@ class ResponseSignal(Enum):
     INSERT_INTO_VECTORDB_SUCCESS = "insert_into_vectordb_success"
     VECTORDB_COLLECTION_RETRIEVED = "vectordb_collection_retrieved"
     VECTORDB_SEARCH_ERROR = "vectordb_search_error"
-    VECTORDB_SEARCH_SUCCESS = "vectordb_search_success"
+    VECTORDB_SEARCH_SUCCESS = "vectordb-search-success"
     RAG_ANSWER_ERROR = "rag_answer_error"
     RAG_ANSWER_SUCCESS = "rag_answer_success"
     FILE_DELETED_SUCCESSFULLY = "file_deleted_successfully"
