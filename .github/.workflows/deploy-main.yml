@@ -17,7 +17,7 @@ jobs:
         uses: appleboy/ssh-action@v1.2.2
         with:
           host: ${{ secrets.SSH_MAIN_HOST_IP }}
-          username: github_user
+          username: git_user
           key: ${{ secrets.SSH_MAIN_PRIVATE_KEY }}
           script: |
             cd /home/git_user/workspace/Asksource
