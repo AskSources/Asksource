@@ -439,4 +439,54 @@ async def create_project(request: Request):
         }
     )
 
-    
+
+@data_router.delete("/projects/{project_id}")
+async def delete_project(request: Request, project_id: str):
+
+    project_model = await ProjectModel.create_instance(db_client=request.app.db_client)
+    asset_model = await AssetModel.create_instance(db_client=request.app.db_client)
+    chunk_model = await ChunkModel.create_instance(db_client=request.app.db_client)
+
+    project = await project_model.get_project_or_create_one(project_id=project_id)
+    if not project or not project.id:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"signal": "PROJECT_NOT_FOUND"}
+        )
+
+    data_controller = DataController()
+    nlp_controller = NLPController(
+        vectordb_client=request.app.vectordb_client,
+        generation_client=request.app.generation_client,
+        embedding_client=request.app.embedding_client,
+        sparse_embedding_client=request.app.sparse_embedding_client, 
+        reranker_client=request.app.reranker_client,
+        template_parser=request.app.template_parser,
+    )
+
+    assets_to_delete = await asset_model.get_all_project_assets(asset_project_id=project.id, asset_type=AssetTypeEnum.FILE.value)
+    for asset in assets_to_delete:
+        data_controller.delete_physical_file(project_id=project.project_id, file_name=asset.asset_name)
+
+    nlp_controller.reset_vector_db_collection(project=project)
+
+    await chunk_model.delete_chunks_by_project_id(project_id=project.id)
+
+    await asset_model.delete_assets_by_project_id(project_id=project.id)
+
+    is_deleted = await project_model.delete_project(project_id=project.id)
+
+    if not is_deleted:
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"signal": "PROJECT_DELETION_FAILED"}
+        )
+
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={
+            "signal": "PROJECT_DELETED_SUCCESSFULLY",
+            "deleted_project_id": project_id
+        }
+    )
+

@@ -74,3 +74,10 @@ class AssetModel(BaseDataModel):
             }
         )
         return result.modified_count > 0
+
+
+    async def delete_assets_by_project_id(self, project_id: ObjectId):
+        result = await self.collection.delete_many({
+            "asset_project_id": project_id
+        })
+        return result.deleted_count    
