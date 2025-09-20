@@ -52,21 +52,33 @@ class ProjectModel(BaseDataModel):
         
         return Project(**record)
 
-    async def get_all_projects(self, page: int=1, page_size: int=10):
+    # async def get_all_projects(self, page: int=1, page_size: int=10):
 
-        # count total number of documents
-        total_documents = await self.collection.count_documents({})
+    #     # count total number of documents
+    #     total_documents = await self.collection.count_documents({})
 
-        # calculate total number of pages
-        total_pages = total_documents // page_size
-        if total_documents % page_size > 0:
-            total_pages += 1
+    #     # calculate total number of pages
+    #     total_pages = total_documents // page_size
+    #     if total_documents % page_size > 0:
+    #         total_pages += 1
 
-        cursor = self.collection.find().skip( (page-1) * page_size ).limit(page_size)
-        projects = []
-        async for document in cursor:
-            projects.append(
-                Project(**document)
-            )
+    #     cursor = self.collection.find().skip( (page-1) * page_size ).limit(page_size)
+    #     projects = []
+    #     async for document in cursor:
+    #         projects.append(
+    #             Project(**document)
+    #         )
 
-        return projects, total_pages
+    #     return projects, total_pages
+
+    async def get_all_projects(self):
+    """
+    Fetches all projects from the database without pagination.
+    """
+    cursor = self.collection.find({})
+    projects = []
+    async for document in cursor:
+        projects.append(Project(**document))
+
+    # We return the projects and a total count of 1 page (as there's no pagination)
+    return projects, 1

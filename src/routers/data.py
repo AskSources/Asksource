@@ -395,35 +395,23 @@ async def update_asset(request: Request, project_id: str, asset_name: str, file:
     )
 
 
-# @data_router.get("/projects")
-# async def get_all_projects(request: Request):
-#     project_model = await ProjectModel.create_instance(db_client=request.app.db_client)
-#     projects, _ = await project_model.get_all_projects()
-
-#     # Convert ObjectId to string for JSON serialization
-#     projects_list = [p.dict() for p in projects]
-#     for p_data in projects_list:
-#         p_data['id'] = str(p_data['id'])
-
-#     return JSONResponse(
-#         content={
-#             "signal": "PROJECTS_RETRIEVED_SUCCESSFULLY",
-#             "projects": projects_list
-#         }
-#     )
-
 @data_router.get("/projects")
-async def get_all_projects(self):
-    """
-    Fetches all projects from the database without pagination.
-    """
-    cursor = self.collection.find({})
-    projects = []
-    async for document in cursor:
-        projects.append(Project(**document))
+async def get_all_projects(request: Request):
+    project_model = await ProjectModel.create_instance(db_client=request.app.db_client)
+    projects, _ = await project_model.get_all_projects()
 
-    # We return the projects and a total count of 1 page (as there's no pagination)
-    return projects, 1
+    # Convert ObjectId to string for JSON serialization
+    projects_list = [p.dict() for p in projects]
+    for p_data in projects_list:
+        p_data['id'] = str(p_data['id'])
+
+    return JSONResponse(
+        content={
+            "signal": "PROJECTS_RETRIEVED_SUCCESSFULLY",
+            "projects": projects_list
+        }
+    )
+
 
 
 @data_router.post("/projects")
