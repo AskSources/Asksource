@@ -274,28 +274,28 @@ async def delete_asset(request: Request, project_id: str, asset_name: str):
 
 @data_router.get("/assets/{project_id}")
 async def get_assets(request: Request, project_id: str):
-    # Step 1: Get the project
     project_model = await ProjectModel.create_instance(db_client=request.app.db_client)
     project = await project_model.get_project_or_create_one(project_id=project_id)
 
     if project is None:
-        return JSONResponse(
-            status_code=status.HTTP_404_NOT_FOUND,
-            content={"signal": ResponseSignal.PROJECT_NOT_FOUND_ERROR.value}
-        )
+        return JSONResponse(status_code=404, content={"signal": "PROJECT_NOT_FOUND"})
 
-    # Step 2: Get all assets for the project
     asset_model = await AssetModel.create_instance(db_client=request.app.db_client)
     assets = await asset_model.get_all_project_assets(
         asset_project_id=project.id,
         asset_type=AssetTypeEnum.FILE.value
     )
 
-    # Step 3: Return the assets
+    # Convert ObjectId to string for JSON serialization
+    assets_list = [asset.dict() for asset in assets]
+    for asset_data in assets_list:
+        asset_data['id'] = str(asset_data['id'])
+        asset_data['asset_project_id'] = str(asset_data['asset_project_id'])
+
     return JSONResponse(
         content={
             "signal": "ASSETS_RETRIEVED_SUCCESSFULLY",
-            "assets": [asset.dict() for asset in assets]
+            "assets": assets_list
         }
     )
 
@@ -395,7 +395,6 @@ async def update_asset(request: Request, project_id: str, asset_name: str, file:
     )
 
 
-# ----- BEGIN NEW CODE FOR PROJECTS -----
 @data_router.get("/projects")
 async def get_all_projects(request: Request):
     project_model = await ProjectModel.create_instance(db_client=request.app.db_client)
@@ -425,7 +424,6 @@ async def create_project(request: Request):
         )
 
     project_model = await ProjectModel.create_instance(db_client=request.app.db_client)
-    # The get_project_or_create_one function handles creation
     project = await project_model.get_project_or_create_one(project_id=project_id)
 
     project_data = project.dict()
@@ -438,5 +436,5 @@ async def create_project(request: Request):
             "project": project_data
         }
     )
-# ----- END NEW CODE FOR PROJECTS -----
 
+    

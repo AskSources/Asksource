@@ -14,11 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 app = FastAPI()
 
 # CORS Middleware Configuration
-origins = [
-    "http://localhost",
-    "http://localhost:3000",
-    # You can add the IP of your deployed frontend here as well
-]
+origins = [*]
 
 app.add_middleware(
     CORSMiddleware,
