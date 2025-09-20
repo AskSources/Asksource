@@ -1,7 +1,7 @@
 from .BaseDataModel import BaseDataModel
 from .db_schemes import Project
 from .enums.DataBaseEnum import DataBaseEnum
-
+from bson import ObjectId
 class ProjectModel(BaseDataModel): 
       
     def __init__(self, db_client: object):
