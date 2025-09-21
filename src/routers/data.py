@@ -14,6 +14,7 @@ from ..models.db_schemes import DataChunk, Asset
 from ..models.enums.AssetTypeEnum import AssetTypeEnum
 from ..controllers import NLPController
 from ..models.db_schemes import DataChunk
+from datetime import datetime 
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -299,9 +300,46 @@ async def delete_asset(request: Request, project_id: str, asset_name: str):
 #         }
 #     )
 
+# @data_router.get("/assets/{project_id}")
+# async def get_assets(request: Request, project_id: str):
+#     # Step 1: Get the project
+#     project_model = await ProjectModel.create_instance(db_client=request.app.db_client)
+#     project = await project_model.get_project_or_create_one(project_id=project_id)
+
+#     if project is None:
+#         return JSONResponse(
+#             status_code=status.HTTP_404_NOT_FOUND,
+#             content={"signal": ResponseSignal.PROJECT_NOT_FOUND_ERROR.value}
+#         )
+
+#     # Step 2: Get all assets for the project
+#     asset_model = await AssetModel.create_instance(db_client=request.app.db_client)
+#     assets = await asset_model.get_all_project_assets(
+#         asset_project_id=project.id,
+#         asset_type=AssetTypeEnum.FILE.value
+#     )
+
+#     # Step 3: Manually serialize the assets to be JSON-safe
+#     assets_list = []
+#     for asset in assets:
+#         asset_data = asset.dict()
+#         # Convert ObjectId and datetime to string to ensure JSON compatibility
+#         asset_data['_id'] = str(asset_data.get('_id'))
+#         asset_data['asset_project_id'] = str(asset_data.get('asset_project_id'))
+#         asset_data['asset_pushed_at'] = asset_data.get('asset_pushed_at').isoformat()
+#         assets_list.append(asset_data)
+
+#     return JSONResponse(
+#         content={
+#             "signal": "ASSETS_RETRIEVED_SUCCESSFULLY",
+#             "assets": assets_list
+#         }
+#     )
+
+
 @data_router.get("/assets/{project_id}")
 async def get_assets(request: Request, project_id: str):
-    # Step 1: Get the project
+    # ... (الكود الخاص بجلب المشروع يبقى كما هو)
     project_model = await ProjectModel.create_instance(db_client=request.app.db_client)
     project = await project_model.get_project_or_create_one(project_id=project_id)
 
@@ -311,21 +349,33 @@ async def get_assets(request: Request, project_id: str):
             content={"signal": ResponseSignal.PROJECT_NOT_FOUND_ERROR.value}
         )
 
-    # Step 2: Get all assets for the project
     asset_model = await AssetModel.create_instance(db_client=request.app.db_client)
     assets = await asset_model.get_all_project_assets(
         asset_project_id=project.id,
         asset_type=AssetTypeEnum.FILE.value
     )
 
-    # Step 3: Manually serialize the assets to be JSON-safe
+    # الكود الجديد والأكثر أمانًا للمعالجة
     assets_list = []
     for asset in assets:
         asset_data = asset.dict()
-        # Convert ObjectId and datetime to string to ensure JSON compatibility
-        asset_data['_id'] = str(asset_data.get('_id'))
-        asset_data['asset_project_id'] = str(asset_data.get('asset_project_id'))
-        asset_data['asset_pushed_at'] = asset_data.get('asset_pushed_at').isoformat()
+
+        # تحويل آمن لمعرفات MongoDB
+        if asset_data.get('_id'):
+            asset_data['_id'] = str(asset_data.get('_id'))
+        if asset_data.get('id'):
+            asset_data['id'] = str(asset_data.get('id'))
+        if asset_data.get('asset_project_id'):
+            asset_data['asset_project_id'] = str(asset_data.get('asset_project_id'))
+
+        # تحويل آمن للتاريخ (هذا هو الجزء الأهم)
+        pushed_at = asset_data.get('asset_pushed_at')
+        if isinstance(pushed_at, datetime):
+            asset_data['asset_pushed_at'] = pushed_at.isoformat()
+        else:
+            # في حالة وجود بيانات قديمة تالفة، نضع تاريخًا افتراضيًا
+            asset_data['asset_pushed_at'] = datetime.utcnow().isoformat()
+
         assets_list.append(asset_data)
 
     return JSONResponse(
