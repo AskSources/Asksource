@@ -272,25 +272,61 @@ async def delete_asset(request: Request, project_id: str, asset_name: str):
     )
 
 
+# @data_router.get("/assets/{project_id}")
+# async def get_assets(request: Request, project_id: str):
+#     project_model = await ProjectModel.create_instance(db_client=request.app.db_client)
+#     project = await project_model.get_project_or_create_one(project_id=project_id)
+
+#     if project is None:
+#         return JSONResponse(status_code=404, content={"signal": "PROJECT_NOT_FOUND"})
+
+#     asset_model = await AssetModel.create_instance(db_client=request.app.db_client)
+#     assets = await asset_model.get_all_project_assets(
+#         asset_project_id=project.id,
+#         asset_type=AssetTypeEnum.FILE.value
+#     )
+
+#     # Convert ObjectId to string for JSON serialization
+#     assets_list = [asset.dict() for asset in assets]
+#     for asset_data in assets_list:
+#         asset_data['id'] = str(asset_data['id'])
+#         asset_data['asset_project_id'] = str(asset_data['asset_project_id'])
+
+#     return JSONResponse(
+#         content={
+#             "signal": "ASSETS_RETRIEVED_SUCCESSFULLY",
+#             "assets": assets_list
+#         }
+#     )
+
 @data_router.get("/assets/{project_id}")
 async def get_assets(request: Request, project_id: str):
+    # Step 1: Get the project
     project_model = await ProjectModel.create_instance(db_client=request.app.db_client)
     project = await project_model.get_project_or_create_one(project_id=project_id)
 
     if project is None:
-        return JSONResponse(status_code=404, content={"signal": "PROJECT_NOT_FOUND"})
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"signal": ResponseSignal.PROJECT_NOT_FOUND_ERROR.value}
+        )
 
+    # Step 2: Get all assets for the project
     asset_model = await AssetModel.create_instance(db_client=request.app.db_client)
     assets = await asset_model.get_all_project_assets(
         asset_project_id=project.id,
         asset_type=AssetTypeEnum.FILE.value
     )
 
-    # Convert ObjectId to string for JSON serialization
-    assets_list = [asset.dict() for asset in assets]
-    for asset_data in assets_list:
-        asset_data['id'] = str(asset_data['id'])
-        asset_data['asset_project_id'] = str(asset_data['asset_project_id'])
+    # Step 3: Manually serialize the assets to be JSON-safe
+    assets_list = []
+    for asset in assets:
+        asset_data = asset.dict()
+        # Convert ObjectId and datetime to string to ensure JSON compatibility
+        asset_data['_id'] = str(asset_data.get('_id'))
+        asset_data['asset_project_id'] = str(asset_data.get('asset_project_id'))
+        asset_data['asset_pushed_at'] = asset_data.get('asset_pushed_at').isoformat()
+        assets_list.append(asset_data)
 
     return JSONResponse(
         content={
@@ -298,6 +334,9 @@ async def get_assets(request: Request, project_id: str):
             "assets": assets_list
         }
     )
+
+
+
 
 @data_router.put("/update/{project_id}/{asset_name}")
 async def update_asset(request: Request, project_id: str, asset_name: str, file: UploadFile,
