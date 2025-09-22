@@ -37,12 +37,15 @@ class NLPController(BaseController):
                 json.dumps(collection_info, default=lambda x: x.__dict__)
             )
         except UnexpectedResponse as e:
+            # إذا كانت المجموعة غير موجودة (خطأ 404)، فهذا يعني أن المشروع لم تتم فهرسته
+            # نعيد ردًا افتراضيًا يحتوي على عدد المتجهات كـ 0
             if e.status_code == 404:
                 return {
                     "vectors_count": 0,
                     "points_count": 0,
                     "status": "not_indexed"
                 }
+            # إذا كان هناك خطأ آخر، نثيره
             raise e
 
 
