@@ -30,20 +30,20 @@ class NLPController(BaseController):
         return self.vectordb_client.delete_collection(collection_name=collection_name)
     
     def get_vector_db_collection_info(self, project: Project):
-    collection_name = self.create_collection_name(project_id=project.project_id)
-    try:
-        collection_info = self.vectordb_client.get_collection_info(collection_name=collection_name)
-        return json.loads(
-            json.dumps(collection_info, default=lambda x: x.__dict__)
-        )
-    except UnexpectedResponse as e:
-        if e.status_code == 404:
-            return {
-                "vectors_count": 0,
-                "points_count": 0,
-                "status": "not_indexed"
-            }
-        raise e
+        collection_name = self.create_collection_name(project_id=project.project_id)
+        try:
+            collection_info = self.vectordb_client.get_collection_info(collection_name=collection_name)
+            return json.loads(
+                json.dumps(collection_info, default=lambda x: x.__dict__)
+            )
+        except UnexpectedResponse as e:
+            if e.status_code == 404:
+                return {
+                    "vectors_count": 0,
+                    "points_count": 0,
+                    "status": "not_indexed"
+                }
+            raise e
 
 
     
