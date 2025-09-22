@@ -6,6 +6,7 @@ import json
 from ..models.ChunkModel import ChunkModel
 import logging
 from ..utils.metrics import EMBEDDINGS_COUNT , ANSWER_CONFIDENCE  , SPARSE_EMBEDDINGS_COUNT
+from qdrant_client.http.exceptions import UnexpectedResponse
 
 logger = logging.getLogger(__name__)
 
@@ -29,12 +30,22 @@ class NLPController(BaseController):
         return self.vectordb_client.delete_collection(collection_name=collection_name)
     
     def get_vector_db_collection_info(self, project: Project):
-        collection_name = self.create_collection_name(project_id=project.project_id)
+    collection_name = self.create_collection_name(project_id=project.project_id)
+    try:
         collection_info = self.vectordb_client.get_collection_info(collection_name=collection_name)
-
         return json.loads(
             json.dumps(collection_info, default=lambda x: x.__dict__)
         )
+    except UnexpectedResponse as e:
+        if e.status_code == 404:
+            return {
+                "vectors_count": 0,
+                "points_count": 0,
+                "status": "not_indexed"
+            }
+        raise e
+
+
     
     def index_into_vector_db(self, project: Project, chunks: List[DataChunk],
                                    chunks_ids: List[int], 
