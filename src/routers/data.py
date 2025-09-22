@@ -1,5 +1,5 @@
 from fastapi import APIRouter, FastAPI, Depends,UploadFile, status, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 import os
 from ..help.config import get_settings , Settings
 from ..controllers import DataController, ProjectController , ProcessController
@@ -579,3 +579,15 @@ async def delete_project(request: Request, project_id: str):
         }
     )
 
+
+
+@data_router.get("/files/{project_id}/{asset_name}")
+async def get_file_content(project_id: str, asset_name: str):
+    project_controller = ProjectController()
+    project_path = project_controller.get_project_path(project_id=project_id)
+    file_path = os.path.join(project_path, asset_name)
+
+    if not os.path.exists(file_path):
+        return JSONResponse(status_code=404, content={"signal": "FILE_NOT_FOUND"})
+
+    return FileResponse(file_path)
