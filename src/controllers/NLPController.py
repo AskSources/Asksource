@@ -28,13 +28,22 @@ class NLPController(BaseController):
         collection_name = self.create_collection_name(project_id=project.project_id)
         return self.vectordb_client.delete_collection(collection_name=collection_name)
     
+        # الكود الصحيح مع المسافات البادئة
     def get_vector_db_collection_info(self, project: Project):
         collection_name = self.create_collection_name(project_id=project.project_id)
-        collection_info = self.vectordb_client.get_collection_info(collection_name=collection_name)
-
-        return json.loads(
-            json.dumps(collection_info, default=lambda x: x.__dict__)
-        )
+        try:
+            collection_info = self.vectordb_client.get_collection_info(collection_name=collection_name)
+            return json.loads(
+                json.dumps(collection_info, default=lambda x: x.__dict__)
+            )
+        except UnexpectedResponse as e:
+            if e.status_code == 404:
+                return {
+                    "vectors_count": 0,
+                    "points_count": 0,
+                    "status": "not_indexed"
+                }
+            raise e
     
     def index_into_vector_db(self, project: Project, chunks: List[DataChunk],
                                    chunks_ids: List[int], 
