@@ -32,8 +32,8 @@ jobs:
                 echo "✅ Port 80 is now active."
                 break
               else
-                echo "⏳ Port 80 not ready yet. Retrying in 80 seconds..."
-                sleep 80
+                echo "⏳ Port 80 not ready yet. Retrying in 10 seconds..."
+                sleep 10
               fi
             done
 
