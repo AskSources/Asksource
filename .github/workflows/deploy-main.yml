@@ -23,6 +23,7 @@ jobs:
             cd /home/git_user/workspace/Asksource
             git checkout main
             git pull
+            sudo docker compose build
             sudo systemctl restart asksource.service
             echo "Waiting..."
             sleep 20
