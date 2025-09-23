@@ -6,7 +6,6 @@ import json
 from ..models.ChunkModel import ChunkModel
 import logging
 from ..utils.metrics import EMBEDDINGS_COUNT , ANSWER_CONFIDENCE  , SPARSE_EMBEDDINGS_COUNT
-from qdrant_client.http.exceptions import UnexpectedResponse
 
 logger = logging.getLogger(__name__)
 
@@ -36,8 +35,6 @@ class NLPController(BaseController):
         return json.loads(
             json.dumps(collection_info, default=lambda x: x.__dict__)
         )
-
-
     
     def index_into_vector_db(self, project: Project, chunks: List[DataChunk],
                                    chunks_ids: List[int], 
