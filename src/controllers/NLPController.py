@@ -6,7 +6,7 @@ import json
 from ..models.ChunkModel import ChunkModel
 import logging
 from ..utils.metrics import EMBEDDINGS_COUNT , ANSWER_CONFIDENCE  , SPARSE_EMBEDDINGS_COUNT
-
+from qdrant_client.http.exceptions import UnexpectedResponse
 logger = logging.getLogger(__name__)
 
 class NLPController(BaseController):
