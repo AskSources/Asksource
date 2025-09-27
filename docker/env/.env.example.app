@@ -44,3 +44,5 @@ SPLADE_MODEL_ID="opensearch-project/opensearch-neural-sparse-encoding-v1"
 RERANKER_MODEL_ID="cross-encoder/mmarco-mMiniLMv2-L12-H384-v1"
 
 
+
+
