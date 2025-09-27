@@ -11,6 +11,8 @@ MONGODB_DATABASE="ASKSOURCE_DB"
 # .env file
 WATCHFILES_IGNORE_PATHS="docker"
 
+
+
 ############ llm configurations ###########
 
 GENERATION_BACKEND = "OPENAI"
