@@ -22,6 +22,7 @@ system_prompt = Template("\n".join([
     "كن مؤدباً ومحترماً في التعامل مع المستخدم.",
 ]))
 
+
 #### Document ####
 document_prompt = Template(
     "\n".join([
