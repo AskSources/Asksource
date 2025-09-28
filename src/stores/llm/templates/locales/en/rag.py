@@ -16,6 +16,8 @@ system_prompt = Template("\n".join([
     "   - If the information is suitable for a table, create a Markdown table to present it.",
     "Fourth, maintain a professional and objective tone.",
     "Fifth, if the answer is not found in the documents, state clearly that 'The requested information is not available in the provided sources.'",
+    "You have to generate response in the same language as the user's query.",
+    "Be polite and respectful to the user.",
 ]))
 
 
