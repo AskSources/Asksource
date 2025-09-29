@@ -6,6 +6,7 @@ pydantic-settings==2.10.1
 aiofiles ==24.1.0
 langchain ==0.3.27
 langchain-community
+pandas == 2.3.2
 pypdf==6.0.0
 PyPDF2==3.0.1
 PyMuPDF==1.26.3
