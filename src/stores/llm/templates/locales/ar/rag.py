@@ -23,9 +23,6 @@ system_prompt = Template("\n".join([
 ]))
 
 
-
-
-
 #### Document ####
 document_prompt = Template(
     "\n".join([
